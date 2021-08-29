@@ -13,7 +13,8 @@ typedef struct matrix Matrix;
 */
 
 
-/*matrix_lib_test 5.0 8 16 16 8 floats_256_2.0f.dat floats_256_5.0f.dat result1.dat result2.dat
+/*
+matrix_lib_test 5.0 8 16 16 8 floats_256_2.0f.dat floats_256_5.0f.dat result1.dat result2.dat
 
 5.0 é o valor escalar que multiplicará a primeira matriz;
 8 é o número de linhas da primeira matriz;
@@ -30,9 +31,9 @@ result2.dat é o nome do arquivo de floats onde o segundo resultado será armaze
 */
 
 
-// Inicializa as matrizes que irão ser realizadas operações
+// Inicializa as matrizes em que irão ser realizadas operações
 static struct matrix * init_matrix(unsigned long height, unsigned long width) {
-    //Aloca espaço para matriz C e da o tamanho para ela
+    // Aloca espaço para matriz e da o tamanho para ela
     struct matrix * matrix = malloc(sizeof(Matrix));
     matrix->height = height;
     matrix->width =  width;
@@ -87,13 +88,14 @@ static void free_matrix(struct matrix * matrix) {
 
 int main(int argc, char* argv[]) {
     if (argc != 9) {
-        printf("Parametros incorretos!");
+        printf("Parametros incorretos!\n");
         return 1;
     }
 
+    // struct matrix * matrixA = init_matrix()
    
     
-
+    // free_matrix();
 
     return 0;
 }
