@@ -18,9 +18,18 @@ typedef struct matrix Matrix;
 static struct matrix * init_matrix(unsigned long height, unsigned long width) {
     // Aloca espaço para matriz e da o tamanho para ela
     struct matrix * matrix = malloc(sizeof(Matrix));
+    if (matrix == NULL) {
+        printf("Problema ao alocar matriz\n");
+        exit(1);
+    }
     matrix->height = height;
     matrix->width = width;
     matrix->rows = (float *) malloc(matrix->height * matrix->width * (sizeof(float)));
+
+    if (matrix->rows == NULL) {
+        printf("Problema ao alocar linhas da matriz\n");
+        exit(1);
+    }
 
     return matrix;
 }
@@ -75,6 +84,11 @@ static void freeMatrix(struct matrix * matrix) {
 }
 
 int main(int argc, char* argv[]) {
+    struct timeval start, stop, overall_t1, overall_t2;
+
+    // Mark overall start time
+    gettimeofday(&overall_t1, NULL);
+
     if (argc != 10) {
         printf("Parametros incorretos!\n");
         return 1;
@@ -131,11 +145,20 @@ int main(int argc, char* argv[]) {
     nome do terceiro arquivo de floats.
     */
 
-    int operationResult = scalar_matrix_mult(scalar, matrixA);
+    int operationResult;
+    
+    // Mark init start time
+    gettimeofday(&start, NULL);
 
+    operationResult = scalar_matrix_mult(scalar, matrixA);
+
+    // Mark init stop time
+    gettimeofday(&stop, NULL);
+    
     if (operationResult == 0) {
         printf("Multiplicacao escalar com problema\n");
     } else {
+        printf("Scalar mult time: %f ms\n", timedifference_msec(start, stop));
         saveMatrix(matrixA, floatsResult1);
     }
 
@@ -147,10 +170,14 @@ int main(int argc, char* argv[]) {
     arquivo de floats.
     */
 
+    gettimeofday(&start, NULL);
     operationResult = matrix_matrix_mult(matrixA, matrixB, matrixC);
+    gettimeofday(&stop, NULL);
+
     if (operationResult == 0) {
         printf("Multiplicacao matricial com problema\n");
     } else {
+        printf("Matrix mult time: %f ms\n", timedifference_msec(start, stop));
         saveMatrix(matrixC, floatsResult2);
     }
 
@@ -158,6 +185,11 @@ int main(int argc, char* argv[]) {
     freeMatrix(matrixA);
     freeMatrix(matrixB);
     freeMatrix(matrixC);
+
+    // Mark overall stop time
+    gettimeofday(&overall_t2, NULL);
+    // Show elapsed overall time
+    printf("Overall time: %f ms\n", timedifference_msec(overall_t1, overall_t2));
 
     return 0;
 }
