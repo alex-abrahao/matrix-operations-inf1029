@@ -69,7 +69,7 @@ static void saveMatrix(struct matrix * matrix, const char * fileName) {
 }
 
 // Libera espaço alocado para uma matriz
-static void free_matrix(struct matrix * matrix) {
+static void freeMatrix(struct matrix * matrix) {
     free(matrix->rows);
     free(matrix);
 }
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
     float scalar;
     unsigned long heightA, widthA, heightB, widthB;
-    const char * floatsA, * floatsB, * result1, * result2;
+    const char * floatsA, * floatsB, * floatsResult1, * floatsResult2;
 
     scalar = strtof(argv[1], NULL); // Conversão p/ float
 
@@ -113,16 +113,16 @@ int main(int argc, char* argv[]) {
     floatsA = argv[6];
     floatsB = argv[7];
 
-    result1 = argv[8];
-    result1 = argv[9];
+    floatsResult1 = argv[8];
+    floatsResult2 = argv[9];
 
     // Inicialização das matrizes
     struct matrix * matrixA = init_matrix(heightA, widthA);
     struct matrix * matrixB = init_matrix(heightB, widthB);
     struct matrix * matrixC = init_matrixResult(matrixA, matrixB);
 
-    // fillMatrix(matrixA, floatsA);
-    // fillMatrix(matrixB, floatsB);
+    fillMatrix(matrixA, floatsA);
+    fillMatrix(matrixB, floatsB);
     
     /*
     A função scalar_matrix_mult deve ser chamada com os seguintes argumentos: o
@@ -131,7 +131,13 @@ int main(int argc, char* argv[]) {
     nome do terceiro arquivo de floats.
     */
 
-    
+    int operationResult = scalar_matrix_mult(scalar, matrixA);
+
+    if (operationResult == 0) {
+        printf("Multiplicacao escalar com problema\n");
+    } else {
+        saveMatrix(matrixA, floatsResult1);
+    }
 
     /*
     Depois, a função matrix_matrix_mult deve ser chamada com os seguintes
@@ -141,10 +147,17 @@ int main(int argc, char* argv[]) {
     arquivo de floats.
     */
 
+    operationResult = matrix_matrix_mult(matrixA, matrixB, matrixC);
+    if (operationResult == 0) {
+        printf("Multiplicacao matricial com problema\n");
+    } else {
+        saveMatrix(matrixC, floatsResult2);
+    }
+
     // Libera matrizes
-    free_matrix(matrixA);
-    free_matrix(matrixB);
-    free_matrix(matrixC);
+    freeMatrix(matrixA);
+    freeMatrix(matrixB);
+    freeMatrix(matrixC);
 
     return 0;
 }
