@@ -35,19 +35,17 @@ static struct matrix * init_matrix(unsigned long height, unsigned long width) {
 }
 
 static void fillMatrix(struct matrix *matrix, const char * fileName) {
-    FILE *ptrArq;
-    float *line;
+    FILE *file;
     
-    ptrArq = fopen(fileName, "rb");
+    file = fopen(fileName, "rb");
 
-    if (ptrArq == NULL) {
+    if (file == NULL) {
         printf("Erro na abertura do arquivo.\n");
         system("pause");
         exit(1);
     }
-    fread(line, sizeof(line),1,ptrArq);
-    matrix->rows = line;
-    fclose(ptrArq);
+    fread(matrix->rows, matrix->height * matrix->width * sizeof(float), 1, file);
+    fclose(file);
 }
 
 // Inicializa a matriz resultado de !!!! A * B !!!! preenchida com 0
@@ -74,19 +72,24 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
 }
 
 static void saveMatrix(struct matrix * matrix, const char * fileName) {
-    FILE *ptrArq;
-    float *line;
+    FILE *file;
     
-    
-    ptrArq = fopen(fileName, "wb");
+    file = fopen(fileName, "wb");
 
-    if (ptrArq == NULL) {
+    if (file == NULL) {
         printf("Erro na abertura do arquivo.\n");
         system("pause");
         exit(1);
     }
-    fwrite(matrix->rows, sizeof(matrix),1,ptrArq);
-    fclose(ptrArq);
+
+    // int i;
+    // for (i = 0; i < matrix->height * matrix->width; i++) {
+    //     printf("%f ", matrix->rows[i]);
+    // }
+    // printf("\n");
+
+    fwrite(matrix->rows, matrix->height * matrix->width * sizeof(float), 1, file);
+    fclose(file);
 }
 
 // Libera espaço alocado para uma matriz
