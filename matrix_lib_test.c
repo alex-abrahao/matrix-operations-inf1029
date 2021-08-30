@@ -35,19 +35,19 @@ static struct matrix * init_matrix(unsigned long height, unsigned long width) {
 }
 
 static void fillMatrix(struct matrix *matrix, const char * fileName) {
-    FILE *f;
+    FILE *ptrArq;
+    float *line;
+    
+    ptrArq = fopen(fileName, "rb");
 
-    // Tenho que pensar um pouco vou descansar vemos isso amanhã
-
-    // f = fopen("comets$system:floats_256_2.0f.dat", "rb");
-    f = fopen(fileName, "rb");
-    if (!f) {
+    if (ptrArq == NULL) {
         printf("Erro na abertura do arquivo.\n");
+        system("pause");
         exit(1);
     }
-
-    // TODO: preencher matriz com arquivo f
-
+    fread(line, sizeof(line),1,ptrArq);
+    matrix->rows = line;
+    fclose(ptrArq);
 }
 
 // Inicializa a matriz resultado de !!!! A * B !!!! preenchida com 0
@@ -74,7 +74,19 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
 }
 
 static void saveMatrix(struct matrix * matrix, const char * fileName) {
-    // TODO: Salvar matriz
+    FILE *ptrArq;
+    float *line;
+    
+    
+    ptrArq = fopen(fileName, "wb");
+
+    if (ptrArq == NULL) {
+        printf("Erro na abertura do arquivo.\n");
+        system("pause");
+        exit(1);
+    }
+    fwrite(matrix->rows, sizeof(matrix),1,ptrArq);
+    fclose(ptrArq);
 }
 
 // Libera espaço alocado para uma matriz
