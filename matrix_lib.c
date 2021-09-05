@@ -24,7 +24,6 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
 
 int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC) {
     unsigned long i, j, k, indexA, indexB, indexC;
-    float sum;
 
     if (test_matrix(matrixA) == 0 || test_matrix(matrixB) == 0) // testa a matrix
         return 0;
@@ -32,26 +31,62 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct m
     // calcula o produto de uma matriz A (m x n) por uma matriz B (n x q),
     // armazenando o resultado na matriz C (m x q), previamente criada
 
-
-    // testa se é possivel fazer a multiplicação entre as matrizes (2x1 * 1x5)
-    if (matrixA->width != matrixB->height) 
+    // testa se é possivel fazer a multiplicação entre as matrizes (m x n * n x p)
+    if (matrixA->width != matrixB->height)
         return 0;
 
     if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) 
         return 0;
 
-    for (i = 0; i < matrixA->height; i++) {
-        for (k = 0; k < matrixB->width; k++) {
-            sum = 0.0;
-            indexC = i * matrixA->width + k;
-            for (j = 0; j < matrixA->width; j++) {
-                indexA = i * matrixA->width + j;
-                indexB = j * matrixB->width + k;
-                sum += matrixA->rows[indexA] * matrixB->rows[indexB];
+    for (i = 0, indexA = 0; i < matrixA->height; i++) {
+        indexB = 0;
+        for (j = 0; j < matrixB->width; j++) {
+            indexC = i * matrixB->width;
+            for (k = 0; k < matrixB->width; k++) {
+                matrixC->rows[indexC] += matrixA->rows[indexA] * matrixB->rows[indexB];
+                indexB++;
+                indexC++;
             }
-            matrixC->rows[indexC] = sum;
+            
+            indexA++;
         }
     }
 
     return 1;
 }
+
+// programa base abaixo
+
+// int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC) {
+//     unsigned long i, j, k, indexA, indexB, indexC;
+//     float sum;
+
+//     if (test_matrix(matrixA) == 0 || test_matrix(matrixB) == 0) // testa a matrix
+//         return 0;
+
+//     // calcula o produto de uma matriz A (m x n) por uma matriz B (n x q),
+//     // armazenando o resultado na matriz C (m x q), previamente criada
+
+
+//     // testa se é possivel fazer a multiplicação entre as matrizes (2x1 * 1x5)
+//     if (matrixA->width != matrixB->height) 
+//         return 0;
+
+//     if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) 
+//         return 0;
+
+//     for (i = 0; i < matrixA->height; i++) {
+//         for (k = 0; k < matrixB->width; k++) {
+//             sum = 0.0;
+//             indexC = i * matrixA->width + k;
+//             for (j = 0; j < matrixA->width; j++) {
+//                 indexA = i * matrixA->width + j;
+//                 indexB = j * matrixB->width + k;
+//                 sum += matrixA->rows[indexA] * matrixB->rows[indexB];
+//             }
+//             matrixC->rows[indexC] = sum;
+//         }
+//     }
+
+//     return 1;
+// }

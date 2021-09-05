@@ -71,6 +71,17 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
     return matrixC;
 }
 
+static void printMatrix(struct matrix * matrix) {
+    int i, j, index;
+    for (i = 0; i < matrix->height; i++) {
+        index = i * matrix->width;
+        for (j = 0; j < matrix->width; j++)
+            printf("%f ", matrix->rows[index++]);
+        printf("\n");
+    }
+    printf("\n\n");
+}
+
 static void saveMatrix(struct matrix * matrix, const char * fileName) {
     FILE *file;
     
@@ -82,11 +93,7 @@ static void saveMatrix(struct matrix * matrix, const char * fileName) {
         exit(1);
     }
 
-    // int i;
-    // for (i = 0; i < matrix->height * matrix->width; i++) {
-    //     printf("%f ", matrix->rows[i]);
-    // }
-    // printf("\n");
+    // printMatrix(matrix);
 
     fwrite(matrix->rows, matrix->height * matrix->width * sizeof(float), 1, file);
     fclose(file);
