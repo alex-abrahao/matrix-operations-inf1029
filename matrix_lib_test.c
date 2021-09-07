@@ -53,15 +53,21 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
     int i;
     
     // Testa se as matrizes são compativeis
-    if (matrixA->width != matrixB->height) 
+    if (matrixA->width != matrixB->height)  {
+        printf("widthA != heightB\n");
         exit(1);
+    }
+        
 
     // Aloca espaço para matriz C e da o tamanho para ela
-    struct matrix * matrixC = init_matrix(matrixB->height, matrixA->width);
+    struct matrix * matrixC = init_matrix(matrixA->height, matrixB->width);
 
     // Confere o se tudo ocorreu certo na alocação da matriz C em relação ao tamanho
-    if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) 
+    if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) {
+        printf("Erro alocando C\n");
         exit(1);
+    } 
+        
     
     // Preenche a matriz C com 0
     for (i = 0; i < matrixC->height * matrixC->width; i++) {
@@ -88,7 +94,7 @@ static void saveMatrix(struct matrix * matrix, const char * fileName) {
     file = fopen(fileName, "wb");
 
     if (file == NULL) {
-        printf("Erro na abertura do arquivo.\n");
+        printf("Erro na abertura do arquivo %s.\n", fileName);
         system("pause");
         exit(1);
     }
@@ -141,7 +147,7 @@ int main(int argc, char* argv[]) {
     scalar = strtof(argv[1], NULL); // Conversão p/ float
 
     // Conversões p/ unsigned long, em base 10
-    heightA = strtoul(argv[2], NULL, 10); 
+    heightA = strtoul(argv[2], NULL, 10);
     widthA = strtoul(argv[3], NULL, 10);
     heightB = strtoul(argv[4], NULL, 10);
     widthB = strtoul(argv[5], NULL, 10);
@@ -156,7 +162,7 @@ int main(int argc, char* argv[]) {
     struct matrix * matrixA = init_matrix(heightA, widthA);
     struct matrix * matrixB = init_matrix(heightB, widthB);
     struct matrix * matrixC = init_matrixResult(matrixA, matrixB);
-
+    
     fillMatrix(matrixA, floatsA);
     fillMatrix(matrixB, floatsB);
     
