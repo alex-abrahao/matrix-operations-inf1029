@@ -1,6 +1,5 @@
-#include <stdlib.h>
-#include <immintrin.h>
-#include "matrix_lib.h"
+#include<stdlib.h>
+#include"matrix_lib.h"
 
 static int test_matrix(struct matrix *matrix) {
     if (matrix == NULL) //testa se a matrix é NULL
@@ -9,35 +8,19 @@ static int test_matrix(struct matrix *matrix) {
     if (matrix->height <= 0 || matrix->width <= 0) //Testa se a matrix tem dimensões
         return 0;
 
-    // Testa se a matriz tem dimensões multiplas de 8
-    if ((matrix->height % 8 != 0) || (matrix->width % 8 != 0))
-		return 0;
-
     return 1;
 }
 
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
-     
-     if (test_matrix(matrix) == 0) //testa a matrix de input
+    unsigned long i;
+    if (test_matrix(matrix) == 0) //testa a matrix de input
         return 0;
-   
-    unsigned long m = matrix->height, n = matrix->width;
-    unsigned long i = 0, j = 0;
-    __m256 v1 = _mm256_set1_ps(scalar_value);
-	__m256 v2;
-	__m256 res;
-
-    for (i = 0; i < m * n; i += 8) {
-		v2 = _mm256_load_ps(&matrix->rows[i]);
-		res	= _mm256_mul_ps(v2, v1);
-		_mm256_store_ps(&matrix->rows[i], res);			
-	}
-
-	return 1;
+    
+    for (i = 0; i < matrix->height * matrix->width; i++) {
+        matrix->rows[i] *= scalar_value;
+    }
+    return 1;
 }
-
-
-
 
 int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC) {
     unsigned long i, j, k, indexA, indexB, indexC;
