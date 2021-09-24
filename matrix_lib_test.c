@@ -17,14 +17,14 @@ typedef struct matrix Matrix;
 // Inicializa as matrizes em que irão ser realizadas operações
 static struct matrix * init_matrix(unsigned long height, unsigned long width) {
     // Aloca espaço para matriz e da o tamanho para ela
-    struct matrix * matrix = malloc(sizeof(Matrix));
+    struct matrix * matrix = (Matrix *) malloc(sizeof(Matrix));
     if (matrix == NULL) {
         printf("Problema ao alocar matriz\n");
         exit(1);
     }
     matrix->height = height;
     matrix->width = width;
-    matrix->rows = (float *) malloc(matrix->height * matrix->width * (sizeof(float)));
+    matrix->rows = (float *) aligned_alloc(32, matrix->height * matrix->width * (sizeof(float)));
 
     if (matrix->rows == NULL) {
         printf("Problema ao alocar linhas da matriz\n");
@@ -47,6 +47,30 @@ static void fillMatrix(struct matrix *matrix, const char * fileName) {
     fread(matrix->rows, matrix->height * matrix->width * sizeof(float), 1, file);
     fclose(file);
 }
+
+
+
+/*
+void preenche_matrix(Matrix *matrix, float val){
+	unsigned long int m = matrix->height, n = matrix->width;
+	int i=0,j=0;
+	__m256 v = _mm256_set1_ps(val);
+	for(i=0;i<m*n; i += 8){
+		_mm256_store_ps(&matrix->rows[i], v);
+	}
+}
+
+*/
+
+
+
+
+
+
+
+
+
+
 
 // Inicializa a matriz resultado de !!!! A * B !!!! preenchida com 0
 static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix * matrixB) { 

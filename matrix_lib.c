@@ -39,74 +39,56 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
 
 
 
-int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC) {
-    unsigned long i, j, k, indexA, indexB, indexC;
 
-    if (test_matrix(matrixA) == 0 || test_matrix(matrixB) == 0) // testa a matrix
-        return 0;
 
-    // calcula o produto de uma matriz A (m x n) por uma matriz B (n x p),
-    // armazenando o resultado na matriz C (m x p), previamente criada
+int matrix_matrix_mult(Matrix *matrixA, Matrix *matrixB, Matrix *matrixC){
 
-    // testa se é possivel fazer a multiplicação entre as matrizes (m x n * n x p)
-    if (matrixA->width != matrixB->height)
-        return 0;
+	unsigned long int m = matrixA->height, q = matrixB->width, n = matrixA->width;
+	__m256 a;
+	__m256 b;
+	__m256 c;
+	__m256 escalar_a_b;
 
-    if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) 
-        return 0;
-
-    for (i = 0; i < matrixC->height * matrixC->width; i++)
-        matrixC->rows[i] = 0.0; // Preenche C com zeros
-
-    for (i = 0, indexA = 0; i < matrixA->height; i++) { // para cada linha de A
-        indexB = 0; // percorre B desde o inicio
-        for (j = 0; j < matrixA->width; j++) { // para cada elemento A[i][j]
-            indexC = i * matrixC->width; // percorre C desde o inicio da linha i
-            for (k = 0; k < matrixC->width; k++) { // percorre a linha C[i]
-                matrixC->rows[indexC] += matrixA->rows[indexA] * matrixB->rows[indexB];
-
-                indexB++;
-                indexC++;
-            }
-            indexA++; // so passa para o proximo elemento de A quando termina de preencher a linha de C
-        }
+	if((m%8!=0)||(q%8!=0)||(n%8!=0)||(matrixA->width!=matrixB->height)){
+		return 0;
+	}
+	
+	 float *nxtA = matrixA->rows;
+	 float *nxtB = matrixB->rows;
+	 float *nxtC = matrixC->rows;
+    
+	//Linhas de A
+	for(int i = 0; i < m; i++, nxtA+=8){
+		//Selecionando a linha de C = A
+		nxtC = matrixC->rows+(i*q);
+		
+		//Selecionando elementos de A
+		for(int j = 0; j<n; j++){
+			a = _mm256_set1_ps(nxtA[j]);
+			
+			for(int k = 0; k < q; k+=8, nxtB+=8, nxtC+=8){
+				if(j==0){
+					//Zerando linha C
+					c = _mm256_set1_ps(0);
+				}
+				else
+				{
+					c = _mm256_load_ps(nxtC);
+				}
+				
+				b = _mm256_load_ps(nxtB);
+				
+				escalar_a_b = _mm256_fmadd_ps(a, b, c);
+				_mm256_store_ps(nxtC, escalar_a_b);
+			}
+			nxtC = matrixC->rows+(i*q);
+		}
+		
+		nxtB = matrixB->rows;
+		
+		
     }
 
     return 1;
 }
 
-// programa base abaixo
-
-// int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC) {
-//     unsigned long i, j, k, indexA, indexB, indexC;
-//     float sum;
-
-//     if (test_matrix(matrixA) == 0 || test_matrix(matrixB) == 0) // testa a matrix
-//         return 0;
-
-//     // calcula o produto de uma matriz A (m x n) por uma matriz B (n x q),
-//     // armazenando o resultado na matriz C (m x q), previamente criada
-
-
-//     // testa se é possivel fazer a multiplicação entre as matrizes (2x1 * 1x5)
-//     if (matrixA->width != matrixB->height) 
-//         return 0;
-
-//     if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) 
-//         return 0;
-
-//     for (i = 0; i < matrixA->height; i++) {
-//         for (k = 0; k < matrixB->width; k++) {
-//             sum = 0.0;
-//             indexC = i * matrixA->width + k;
-//             for (j = 0; j < matrixA->width; j++) {
-//                 indexA = i * matrixA->width + j;
-//                 indexB = j * matrixB->width + k;
-//                 sum += matrixA->rows[indexA] * matrixB->rows[indexB];
-//             }
-//             matrixC->rows[indexC] = sum;
-//         }
-//     }
-
-//     return 1;
-// }
