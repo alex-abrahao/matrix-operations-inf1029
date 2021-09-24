@@ -48,30 +48,6 @@ static void fillMatrix(struct matrix *matrix, const char * fileName) {
     fclose(file);
 }
 
-
-
-/*
-void preenche_matrix(Matrix *matrix, float val){
-	unsigned long int m = matrix->height, n = matrix->width;
-	int i=0,j=0;
-	__m256 v = _mm256_set1_ps(val);
-	for(i=0;i<m*n; i += 8){
-		_mm256_store_ps(&matrix->rows[i], v);
-	}
-}
-
-*/
-
-
-
-
-
-
-
-
-
-
-
 // Inicializa a matriz resultado de !!!! A * B !!!! preenchida com 0
 static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix * matrixB) { 
     int i;
