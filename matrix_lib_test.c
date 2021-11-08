@@ -114,10 +114,11 @@ static void freeMatrix(struct matrix * matrix) {
 int main(int argc, char* argv[]) {
     struct timeval start, stop, overall_t1, overall_t2;
 
+
     // Mark overall start time
     gettimeofday(&overall_t1, NULL);
 
-    if (argc != 10) {
+    if (argc != 11) {
         printf("Parametros incorretos!\n");
         return 1;
     }
@@ -132,6 +133,7 @@ int main(int argc, char* argv[]) {
     16 é o número de colunas da primeira matriz;
     16 é o número de linhas da segunda matriz;
     8 é o número de colunas da segunda matriz;
+    4 é o número de threads a serem disparadas;
 
     floats_256_2.0f.dat é o nome do arquivo de floats que será usado para carregar a primeira matriz;
     floats_256_5.0f.dat é o nome do arquivo de floats que será usado para carregar a segunda matriz;
@@ -143,7 +145,8 @@ int main(int argc, char* argv[]) {
     float scalar;
     unsigned long heightA, widthA, heightB, widthB;
     const char * floatsA, * floatsB, * floatsResult1, * floatsResult2;
-
+    int numThreads;
+    
     scalar = strtof(argv[1], NULL); // Conversão p/ float
 
     // Conversões p/ unsigned long, em base 10
@@ -152,11 +155,17 @@ int main(int argc, char* argv[]) {
     heightB = strtoul(argv[4], NULL, 10);
     widthB = strtoul(argv[5], NULL, 10);
 
-    floatsA = argv[6];
-    floatsB = argv[7];
+    // numThreads = strtol(argv[6], NULL, 10);
+    numThreads = atoi(argv[6]);
 
-    floatsResult1 = argv[8];
-    floatsResult2 = argv[9];
+    floatsA = argv[7];
+    floatsB = argv[8];
+
+    floatsResult1 = argv[9];
+    floatsResult2 = argv[10];
+
+    printf("Numero de threads: %d\n", numThreads);
+    set_number_threads(numThreads);
 
     // Inicialização das matrizes
     struct matrix * matrixA = init_matrix(heightA, widthA);

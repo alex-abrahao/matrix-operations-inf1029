@@ -1,2 +1,2 @@
 language = "c"
-run = "gcc -std=c11 -mfma -o matrix_lib_test matrix_lib_test.c matrix_lib.c timer.c && ./matrix_lib_test 5.0 32 8 8 16 floats_256.dat floats_128.dat result1.dat result2.dat"
+run = "gcc -std=c11 -pthread -mfma -o matrix_lib_test matrix_lib_test.c matrix_lib.c timer.c && ./matrix_lib_test 5.0 32 8 8 16 4 floats_256.dat floats_128.dat result1.dat result2.dat"
