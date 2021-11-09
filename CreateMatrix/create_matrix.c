@@ -49,17 +49,23 @@ static void readMatrix(unsigned long tam, const char * fileName) {
 }
 
 int main(int argc, char* argv[]) {
+    // Argumentos padrao, caso sejam passados incorretamente
     unsigned long numFloats = 64;
     float numInserido = 1.0;
-    const char * arquivo = "floats_64.dat";
+    const char * arquivo = "floats_64_1.0.dat";
 
     if (argc == 5) {
-        // ./create_matrix num altura largura arquivo 
+        // ./create_matrix <num> <altura> <largura> <arquivo>
         
         numInserido = strtof(argv[1], NULL);
         numFloats = strtoul(argv[2], NULL, 10) * strtoul(argv[3], NULL, 10);
         arquivo = argv[4];
+    } else {
+        printf("Numero incorreto de argumentos.\n");
+        printf("Uso correto: ./create_matrix <num> <altura> <largura> <arquivo>\n");
     }
+
+    printf("Criando arquivo de contendo %d floats com valor %.1f...\n", numFloats, numInserido);
 
     saveMatrix(numFloats, numInserido, arquivo);
     printf("Teste arquivo %s\n", arquivo);

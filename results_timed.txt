@@ -1,0 +1,20 @@
+Resultado com o programa do Trabalho 1:
+
+Scalar mult time: 2.547000 ms
+Matrix mult time: 3684.527100 ms
+Overall time: 3714.063965 ms
+
+
+Resultado com o programa do Trabalho 2:
+
+Scalar mult time: 0.725000 ms
+Matrix mult time: 916.127991 ms
+Overall time: 947.018005 ms
+
+
+Resultado com o programa do Trabalho 3:
+
+Numero de threads: 4
+Scalar mult time: 1.237000 ms
+Matrix mult time: 246.425995 ms
+Overall time: 274.760986 ms
