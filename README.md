@@ -1,2 +1,2 @@
 # matrix-operations-inf1029
-Programa base utilizado para matéria INF1029
+Programas de operações sobre matrizes, utilizados para matéria INF1029.
