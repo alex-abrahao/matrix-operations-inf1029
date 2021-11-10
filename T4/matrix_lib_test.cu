@@ -67,8 +67,6 @@ static void fillMatrix(struct matrix *matrix, const char * fileName) {
 
 // Inicializa a matriz resultado de !!!! A * B !!!! preenchida com 0
 static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix * matrixB) { 
-    int i;
-    
     // Testa se as matrizes são compativeis
     if (matrixA->width != matrixB->height)  {
         printf("widthA != heightB\n");
@@ -159,7 +157,7 @@ int main(int argc, char* argv[]) {
     float scalar;
     unsigned long heightA, widthA, heightB, widthB;
     const char * floatsA, * floatsB, * floatsResult1, * floatsResult2;
-    int numThreads, maxBlocks, setGridReturn;
+    int numThreads, maxBlocks;
     cudaError_t cudaError;
     
     scalar = strtof(argv[1], NULL); // Conversão p/ float

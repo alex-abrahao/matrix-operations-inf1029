@@ -1,20 +1,29 @@
 Resultado com o programa do Trabalho 1:
 
-Scalar mult time: 2.547000 ms
-Matrix mult time: 3684.527100 ms
-Overall time: 3714.063965 ms
+Scalar mult time: 3.154000 ms
+Matrix mult time: 3750.766113 ms
+Overall time: 3767.384033 ms
 
 
 Resultado com o programa do Trabalho 2:
 
-Scalar mult time: 0.725000 ms
-Matrix mult time: 916.127991 ms
-Overall time: 947.018005 ms
+Scalar mult time: 0.880000 ms
+Matrix mult time: 880.182007 ms
+Overall time: 893.614990 ms
 
 
 Resultado com o programa do Trabalho 3:
 
 Numero de threads: 4
-Scalar mult time: 1.237000 ms
-Matrix mult time: 246.425995 ms
-Overall time: 274.760986 ms
+Scalar mult time: 0.548000 ms
+Matrix mult time: 249.677994 ms
+Overall time: 330.575012 ms
+
+
+Resultado com o programa do Trabalho 4:
+
+Numero de threads por bloco: 256
+Max de blocos por GRID: 4096
+Scalar mult time: 0.345000 ms
+Matrix mult time: 43.096001 ms
+Overall time: 214.966995 ms
