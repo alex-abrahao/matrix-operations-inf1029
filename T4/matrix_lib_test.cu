@@ -57,6 +57,13 @@ static void fillMatrix(struct matrix *matrix, const char * fileName) {
     }
     fread(matrix->h_rows, matrix->height * matrix->width * sizeof(float), 1, file);
     fclose(file);
+
+    cudaError_t cudaError = cudaMemcpy(matrix->d_rows, matrix->h_rows, matrix->height * matrix->width * sizeof(float), cudaMemcpyHostToDevice);
+
+    if (cudaError != cudaSuccess) {
+        printf("cudaMemcpy (matrix.h_rows -> matrix.d_rows) returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
+        exit(1);
+    }
 }
 
 // Inicializa a matriz resultado de !!!! A * B !!!! preenchida com 0
@@ -78,12 +85,6 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
         printf("Erro alocando C\n");
         exit(1);
     } 
-        
-    
-    // Preenche a matriz C com 0
-    for (i = 0; i < matrixC->height * matrixC->width; i++) {
-        matrixC->h_rows[i] = 0.0;
-    }
 
     return matrixC;
 }
@@ -160,6 +161,7 @@ int main(int argc, char* argv[]) {
     unsigned long heightA, widthA, heightB, widthB;
     const char * floatsA, * floatsB, * floatsResult1, * floatsResult2;
     int numThreads, maxBlocks, setGridReturn;
+    cudaError_t cudaError;
     
     scalar = strtof(argv[1], NULL); // Conversão p/ float
 
@@ -209,9 +211,14 @@ int main(int argc, char* argv[]) {
 
     // Mark init stop time
     gettimeofday(&stop, NULL);
+
+    cudaError = cudaMemcpy(matrixA->h_rows, matrixA->d_rows, matrixA->height * matrixA->width * sizeof(float), cudaMemcpyDeviceToHost);
     
     if (operationResult == 0) {
         printf("Multiplicacao escalar com problema\n");
+    } else if (cudaError != cudaSuccess) {
+        printf("cudaMemcpy (matrix.d_rows -> matrix.h_rows) returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
+        exit(1);
     } else {
         printf("Scalar mult time: %f ms\n", timedifference_msec(start, stop));
         saveMatrix(matrixA, floatsResult1);
@@ -229,8 +236,13 @@ int main(int argc, char* argv[]) {
     operationResult = matrix_matrix_mult(matrixA, matrixB, matrixC);
     gettimeofday(&stop, NULL);
 
+    cudaError = cudaMemcpy(matrixC->h_rows, matrixC->d_rows, matrixC->height * matrixC->width * sizeof(float), cudaMemcpyDeviceToHost);
+
     if (operationResult == 0) {
         printf("Multiplicacao matricial com problema\n");
+    } else if (cudaError != cudaSuccess) {
+        printf("cudaMemcpy (matrix.d_rows -> matrix.h_rows) returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
+        exit(1);
     } else {
         printf("Matrix mult time: %f ms\n", timedifference_msec(start, stop));
         saveMatrix(matrixC, floatsResult2);
