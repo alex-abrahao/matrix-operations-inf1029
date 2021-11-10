@@ -3,6 +3,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <cuda_runtime.h>
+extern "C" {
+#include "timer.h"
+}
  
 /*
 struct matrix {
@@ -24,11 +28,18 @@ static struct matrix * init_matrix(unsigned long height, unsigned long width) {
     }
     matrix->height = height;
     matrix->width = width;
-    matrix->rows = (float *) aligned_alloc(32, matrix->height * matrix->width * (sizeof(float)));
+    matrix->h_rows = (float *) aligned_alloc(32, matrix->height * matrix->width * (sizeof(float)));
 
-    if (matrix->rows == NULL) {
-        printf("Problema ao alocar linhas da matriz\n");
+    if (matrix->h_rows == NULL) {
+        printf("Problema ao alocar linhas da matriz no host\n");
         exit(1);
+    }
+
+    cudaError_t cudaError = cudaMalloc(&matrix->d_rows, matrix->height * matrix->width * (sizeof(float)));
+
+    if (cudaError != cudaSuccess) {
+        printf("cudaMalloc returned error %s (code %d)\n", cudaGetErrorString(cudaError), cudaError);
+            return 1;
     }
 
     return matrix;
@@ -44,7 +55,7 @@ static void fillMatrix(struct matrix *matrix, const char * fileName) {
         system("pause");
         exit(1);
     }
-    fread(matrix->rows, matrix->height * matrix->width * sizeof(float), 1, file);
+    fread(matrix->h_rows, matrix->height * matrix->width * sizeof(float), 1, file);
     fclose(file);
 }
 
@@ -71,7 +82,7 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
     
     // Preenche a matriz C com 0
     for (i = 0; i < matrixC->height * matrixC->width; i++) {
-        matrixC->rows[i] = 0.0;
+        matrixC->h_rows[i] = 0.0;
     }
 
     return matrixC;
@@ -82,7 +93,7 @@ static void printMatrix(struct matrix * matrix) {
     for (i = 0; i < matrix->height; i++) {
         index = i * matrix->width;
         for (j = 0; j < matrix->width; j++)
-            printf("%f ", matrix->rows[index++]);
+            printf("%f ", matrix->h_rows[index++]);
         printf("\n");
     }
     printf("\n\n");
@@ -101,13 +112,14 @@ static void saveMatrix(struct matrix * matrix, const char * fileName) {
 
     // printMatrix(matrix);
 
-    fwrite(matrix->rows, matrix->height * matrix->width * sizeof(float), 1, file);
+    fwrite(matrix->h_rows, matrix->height * matrix->width * sizeof(float), 1, file);
     fclose(file);
 }
 
 // Libera espaço alocado para uma matriz
 static void freeMatrix(struct matrix * matrix) {
-    free(matrix->rows);
+    cudaFree(matrix->d_rows);
+    free(matrix->h_rows);
     free(matrix);
 }
 
@@ -118,22 +130,24 @@ int main(int argc, char* argv[]) {
     // Mark overall start time
     gettimeofday(&overall_t1, NULL);
 
-    if (argc != 11) {
-        printf("Parametros incorretos!\n");
+    if (argc != 12) {
+        printf("Parametros incorretos! Exemplo de comando:\n");
+        printf("./matrix_lib_test 5.0 8 16 16 8 256 4096 floats_256_2.0f.dat floats_256_5.0f.dat result1.dat result2.dat\n");
         return 1;
     }
 
     /*
     Exemplo de comando:
 
-    ./matrix_lib_test 5.0 8 16 16 8 floats_256_2.0f.dat floats_256_5.0f.dat result1.dat result2.dat
+    ./matrix_lib_test 5.0 8 16 16 8 256 4096 floats_256_2.0f.dat floats_256_5.0f.dat result1.dat result2.dat
 
     5.0 é o valor escalar que multiplicará a primeira matriz;
     8 é o número de linhas da primeira matriz;
     16 é o número de colunas da primeira matriz;
     16 é o número de linhas da segunda matriz;
     8 é o número de colunas da segunda matriz;
-    4 é o número de threads a serem disparadas;
+    256 é o número de threads por bloco a serem disparadas;
+    4096 é o número máximo de blocos por GRID a serem usados;
 
     floats_256_2.0f.dat é o nome do arquivo de floats que será usado para carregar a primeira matriz;
     floats_256_5.0f.dat é o nome do arquivo de floats que será usado para carregar a segunda matriz;
@@ -145,7 +159,7 @@ int main(int argc, char* argv[]) {
     float scalar;
     unsigned long heightA, widthA, heightB, widthB;
     const char * floatsA, * floatsB, * floatsResult1, * floatsResult2;
-    int numThreads;
+    int numThreads, maxBlocks, setGridReturn;
     
     scalar = strtof(argv[1], NULL); // Conversão p/ float
 
@@ -155,23 +169,27 @@ int main(int argc, char* argv[]) {
     heightB = strtoul(argv[4], NULL, 10);
     widthB = strtoul(argv[5], NULL, 10);
 
-    // numThreads = strtol(argv[6], NULL, 10);
     numThreads = atoi(argv[6]);
+    maxBlocks = atoi(argv[7]);
 
-    floatsA = argv[7];
-    floatsB = argv[8];
+    floatsA = argv[8];
+    floatsB = argv[9];
 
-    floatsResult1 = argv[9];
-    floatsResult2 = argv[10];
+    floatsResult1 = argv[10];
+    floatsResult2 = argv[11];
 
-    printf("Numero de threads: %d\n", numThreads);
-    set_number_threads(numThreads);
+    // GRID Size
+    if (set_grid_size(numThreads, maxBlocks) != 0) {
+        printf("Numero de threads por bloco: %d\nMax de blocos por GRID: %d\n", numThreads, maxBlocks);
+    } else {
+        printf("Erro: Parametros de threads ou max de blocos incorreto. Utilizando valores padroes.\n");
+    }
 
     // Inicialização das matrizes
     struct matrix * matrixA = init_matrix(heightA, widthA);
     struct matrix * matrixB = init_matrix(heightB, widthB);
     struct matrix * matrixC = init_matrixResult(matrixA, matrixB);
-    
+
     fillMatrix(matrixA, floatsA);
     fillMatrix(matrixB, floatsB);
     
