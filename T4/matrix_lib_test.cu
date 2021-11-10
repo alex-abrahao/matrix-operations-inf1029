@@ -1,5 +1,4 @@
 #include "matrix_lib.h"
-#include "timer.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +38,7 @@ static struct matrix * init_matrix(unsigned long height, unsigned long width) {
 
     if (cudaError != cudaSuccess) {
         printf("cudaMalloc returned error %s (code %d)\n", cudaGetErrorString(cudaError), cudaError);
-            return 1;
+        exit(1);
     }
 
     return matrix;
