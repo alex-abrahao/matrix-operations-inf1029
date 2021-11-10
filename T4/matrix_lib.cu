@@ -57,7 +57,7 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
 	if (numBlocks > maxBlocksPerGrid)
         numBlocks = maxBlocksPerGrid;
 
-	escalar<<<numBlocks, blockSize>>>(matrixSize, matrix->d_rows, scalar_value);
+	scalar_thread<<<numBlocks, blockSize>>>(matrixSize, matrix->d_rows, scalar_value);
 
     // Wait for GPU to finish before accessing on host
 	cudaDeviceSynchronize();
@@ -67,7 +67,7 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
 
 
 
-void * matrix_thread(void * thread_data) {
+void matrix_thread(void * thread_data) {
 
     // struct thread_data_matrix_mult * data = (struct thread_data_matrix_mult *) thread_data;
     // Matrix * matrixA = data->matrixA, * matrixB = data->matrixB, * matrixC = data->matrixC;
