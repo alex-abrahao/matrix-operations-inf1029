@@ -25,7 +25,7 @@ void set_ve_execution_node(int num_node) {
 void set_number_threads(int num_threads) {
     if (num_threads < 0) {
         nThreads = 1;
-        printf("num_threads %d is invalid. Using 1 thread\n", num_node);
+        printf("num_threads %d is invalid. Using 1 thread\n", num_threads);
         return;
     }
 
@@ -93,7 +93,7 @@ int unload_ve_matrix(struct matrix *matrix) {
 }
 
 /// Returns 0 when there is an error: either vh_rows or ve_rows are NULL
-static int verify_rows_for_null(Matrix matrix) {
+static int verify_rows_for_null(Matrix * matrix) {
     return (matrix->vh_rows != NULL && matrix->vh_rows != NULL);
 }
 
@@ -138,24 +138,24 @@ static int test_matrix(struct matrix *matrix) {
     return 1;
 }
 
-void scalar_thread(unsigned long n, float * d_x, float scalar) {
-    unsigned long i = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;
+// void scalar_thread(unsigned long n, float * d_x, float scalar) {
+//     unsigned long i = blockIdx.x * blockDim.x + threadIdx.x;
+//     int stride = blockDim.x * gridDim.x;
 
-    for (; i < n; i += stride) {
-        d_x[i] *= scalar;
-    }
-}
+//     for (; i < n; i += stride) {
+//         d_x[i] *= scalar;
+//     }
+// }
 
 
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
     if (test_matrix(matrix) == 0) //testa a matrix de input
         return 0;
    
-    int blockSize = threadsPerBlock, matrixSize = matrix->height * matrix->width;
-    int numBlocks = (matrixSize + blockSize - 1) / blockSize;
-    if (numBlocks > maxBlocksPerGrid)
-        numBlocks = maxBlocksPerGrid;
+    // int blockSize = threadsPerBlock, matrixSize = matrix->height * matrix->width;
+    // int numBlocks = (matrixSize + blockSize - 1) / blockSize;
+    // if (numBlocks > maxBlocksPerGrid)
+    //     numBlocks = maxBlocksPerGrid;
 
     // scalar_thread<<<numBlocks, blockSize>>>(matrixSize, matrix->d_rows, scalar_value);
 
@@ -166,25 +166,25 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
 }
 
 
-void matrix_thread(unsigned long n, float * d_A, float * d_B, float * d_C, unsigned long widthA, unsigned long widthB, unsigned long widthC) {
-    unsigned long i = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;
-    unsigned long j, k, lineA, lineC, colC, endA, indexB;
+// void matrix_thread(unsigned long n, float * d_A, float * d_B, float * d_C, unsigned long widthA, unsigned long widthB, unsigned long widthC) {
+//     unsigned long i = blockIdx.x * blockDim.x + threadIdx.x;
+//     int stride = blockDim.x * gridDim.x;
+//     unsigned long j, k, lineA, lineC, colC, endA, indexB;
 
-    for (; i < n; i += stride) {
-        lineC = i / widthC;
-        colC = i % widthC;
-        lineA = lineC * widthA;
-        endA = lineA + widthA;
+//     for (; i < n; i += stride) {
+//         lineC = i / widthC;
+//         colC = i % widthC;
+//         lineA = lineC * widthA;
+//         endA = lineA + widthA;
         
-        d_C[i] = 0.0;
+//         d_C[i] = 0.0;
         
-        for (j = lineA, k = 0; j < endA; j++, k++) {
-            indexB = k * widthB + colC;
-            d_C[i] += d_A[j] * d_B[indexB];
-        }
-    }
-}
+//         for (j = lineA, k = 0; j < endA; j++, k++) {
+//             indexB = k * widthB + colC;
+//             d_C[i] += d_A[j] * d_B[indexB];
+//         }
+//     }
+// }
 
 int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC) {
     if (test_matrix(matrixA) == 0 || test_matrix(matrixB) == 0) // testa a matrix
@@ -200,10 +200,10 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct m
     if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) 
         return 0;
 
-    int blockSize = threadsPerBlock, matrixSize = matrixC->height * matrixC->width;
-    int numBlocks = (matrixSize + blockSize - 1) / blockSize;
-    if (numBlocks > maxBlocksPerGrid)
-        numBlocks = maxBlocksPerGrid;
+    // int blockSize = threadsPerBlock, matrixSize = matrixC->height * matrixC->width;
+    // int numBlocks = (matrixSize + blockSize - 1) / blockSize;
+    // if (numBlocks > maxBlocksPerGrid)
+    //     numBlocks = maxBlocksPerGrid;
 
     // matrix_thread<<<numBlocks, blockSize>>>(matrixSize, matrixA->d_rows, matrixB->d_rows, matrixC->d_rows, matrixA->width, matrixB->width, matrixC->width);
 

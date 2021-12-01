@@ -101,7 +101,7 @@ static void saveMatrix(struct matrix * matrix, const char * fileName) {
 
 // Libera espaço alocado para uma matriz
 static void freeMatrix(struct matrix * matrix) {
-    if (matrix->ve_host != NULL) {
+    if (matrix->ve_rows != NULL) {
         unload_ve_matrix(matrix);
     }
     free(matrix->vh_rows);
