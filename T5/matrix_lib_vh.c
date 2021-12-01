@@ -23,7 +23,7 @@ void set_ve_execution_node(int num_node) {
 }
 
 void set_number_threads(int num_threads) {
-    if (num_threads < 0) {
+    if (num_threads < 1) {
         nThreads = 1;
         printf("num_threads %d is invalid. Using 1 thread\n", num_threads);
         return;
@@ -58,7 +58,7 @@ int close_proc_ve_node() {
     }
     library_handle = 0;
     rc = veo_proc_destroy(process);
-    if (rc != 1) {
+    if (rc != 0) {
         printf("veo_proc_destroy failed: %d\n", rc);
         return 0;
     }
@@ -94,12 +94,21 @@ int unload_ve_matrix(struct matrix *matrix) {
 
 /// Returns 0 when there is an error: either vh_rows or ve_rows are NULL
 static int verify_rows_for_null(Matrix * matrix) {
-    return (matrix->vh_rows != NULL && matrix->vh_rows != NULL);
+    if (matrix->vh_rows == NULL) {
+        printf("vh_rows NULL!!!!\n");
+        return 0;
+    }
+    if (matrix->ve_rows == NULL) {
+        printf("ve_rows NULL!!!!\n");
+        return 0;
+    }
+    return 1;
 }
 
 int sync_vh_ve_matrix(struct matrix *matrix) {
     if (verify_rows_for_null(matrix) == 0) {
         printf("Error: found NULL when trying to copy (vh_rows -> ve_rows)\n");
+        return 0;
     }
 
     int ret = veo_hmemcpy(matrix->ve_rows, matrix->vh_rows, sizeof(float) * matrix->height * matrix->width);
@@ -113,6 +122,7 @@ int sync_vh_ve_matrix(struct matrix *matrix) {
 int sync_ve_vh_matrix(struct matrix *matrix) {
     if (verify_rows_for_null(matrix) == 0) {
         printf("Error: found NULL when trying to copy (ve_rows -> vh_rows)\n");
+        return 0;
     }
 
     int ret = veo_hmemcpy(matrix->vh_rows, matrix->ve_rows, sizeof(float) * matrix->height * matrix->width);
@@ -138,29 +148,77 @@ static int test_matrix(struct matrix *matrix) {
     return 1;
 }
 
-// void scalar_thread(unsigned long n, float * d_x, float scalar) {
-//     unsigned long i = blockIdx.x * blockDim.x + threadIdx.x;
-//     int stride = blockDim.x * gridDim.x;
-
-//     for (; i < n; i += stride) {
-//         d_x[i] *= scalar;
-//     }
-// }
-
 
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
     if (test_matrix(matrix) == 0) //testa a matrix de input
         return 0;
-   
-    // int blockSize = threadsPerBlock, matrixSize = matrix->height * matrix->width;
-    // int numBlocks = (matrixSize + blockSize - 1) / blockSize;
-    // if (numBlocks > maxBlocksPerGrid)
-    //     numBlocks = maxBlocksPerGrid;
 
-    // scalar_thread<<<numBlocks, blockSize>>>(matrixSize, matrix->d_rows, scalar_value);
+    struct veo_thr_ctxt *ctx = veo_context_open(process);
+    if (ctx == NULL) {
+        printf("veo_context_open (scalar mult) failed\n");
+        return 0;
+    }
 
-    // Wait for GPU to finish before accessing on host
-    // cudaDeviceSynchronize();
+    // Preparing arguments
+    int ret;
+    struct veo_args *argp = veo_args_alloc();
+    if (argp == NULL) {
+        printf("veo_args_alloc (scalar mult) failed\n");
+        return 0;
+    }
+    veo_args_clear(argp);
+
+    // matrix_size
+    ret = veo_args_set_u64(argp, 0, matrix->height * matrix->width);
+    if (ret != 0) {
+        printf("veo_args_set_u64 failed for matrix_size: %d", ret);
+        return 0;
+    }
+
+    // ve_rows
+    ret = veo_args_set_hmem(argp, 1, matrix->ve_rows);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for ve_rows: %d", ret);
+        return 0;
+    }
+
+    // scalar
+    ret = veo_args_set_float(argp, 2, scalar_value);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for scalar: %d", ret);
+        return 0;
+    }
+
+    // num_threads
+    ret = veo_args_set_i32(argp, 3, nThreads);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for num_threads: %d", ret);
+        return 0;
+    }
+
+    // Running threads on VE
+    uint64_t id = veo_call_async_by_name(ctx, library_handle, "scalar_mult", argp);
+    if (id == VEO_REQUEST_ID_INVALID) {
+        printf("veo_call_async_by_name (scalar mult) failed: %lu\n", id);
+        return 0;
+    }
+
+    // Waiting for threads to finish
+    uint64_t retval;
+    int wait_val;
+    wait_val = veo_call_wait_result(ctx, id, &retval);
+    if (wait_val != VEO_COMMAND_OK) {
+        printf("veo_call_wait_result (scalar mult) failed: %d\n", wait_val);
+        return 0;
+    }
+
+    // Closing
+    veo_args_free(argp);
+    ret = veo_context_close(ctx);
+    if (ret != 0) {
+        printf("veo_context_close (scalar mult) failed: %d\n", ret);
+        return 0;
+    }
 
     return 1;
 }
@@ -200,6 +258,56 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct m
     if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) 
         return 0;
 
+    struct veo_thr_ctxt *ctx = veo_context_open(process);
+    if (ctx == NULL) {
+        printf("veo_context_open (matrix mult) failed\n");
+        return 0;
+    }
+
+    // Preparing arguments
+    int ret;
+    struct veo_args *argp = veo_args_alloc();
+    if (argp == NULL) {
+        printf("veo_args_alloc (matrix mult) failed\n");
+        return 0;
+    }
+    veo_args_clear(argp);
+
+    // matrix_size
+    ret = veo_args_set_u64(argp, 0, matrixC->height * matrixC->width);
+    if (ret != 0) {
+        printf("veo_args_set_u64 failed for height: %d", ret);
+        return 0;
+    }
+
+    // ve_rows
+    ret = veo_args_set_hmem(argp, 1, matrixC->ve_rows);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for ve_rows: %d", ret);
+        return 0;
+    }
+
+    // scalar
+    ret = veo_args_set_float(argp, 2, 1.0);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for scalar: %d", ret);
+        return 0;
+    }
+
+    // num_threads
+    ret = veo_args_set_i32(argp, 3, nThreads);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for num_threads: %d", ret);
+        return 0;
+    }
+
+    // Running threads on VE
+    uint64_t id = veo_call_async_by_name(ctx, library_handle, "matrix_mult", argp);
+    if (id == VEO_REQUEST_ID_INVALID) {
+        printf("veo_call_async_by_name (matrix mult) failed: %lu\n", id);
+        return 0;
+    }
+
     // int blockSize = threadsPerBlock, matrixSize = matrixC->height * matrixC->width;
     // int numBlocks = (matrixSize + blockSize - 1) / blockSize;
     // if (numBlocks > maxBlocksPerGrid)
@@ -207,9 +315,22 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct m
 
     // matrix_thread<<<numBlocks, blockSize>>>(matrixSize, matrixA->d_rows, matrixB->d_rows, matrixC->d_rows, matrixA->width, matrixB->width, matrixC->width);
 
-    // Wait for GPU to finish before accessing on host
-    // cudaDeviceSynchronize();
+    // Waiting for threads to finish
+    uint64_t retval;
+    int wait_val;
+    wait_val = veo_call_wait_result(ctx, id, &retval);
+    if (wait_val != VEO_COMMAND_OK) {
+        printf("veo_call_wait_result (matrix mult) failed: %d\n", wait_val);
+        return 0;
+    }
+
+    // Closing
+    veo_args_free(argp);
+    ret = veo_context_close(ctx);
+    if (ret != 0) {
+        printf("veo_context_close (matrix mult) failed: %d\n", ret);
+        return 0;
+    }
 
     return 1;
 }
-

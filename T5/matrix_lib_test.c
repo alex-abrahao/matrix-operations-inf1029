@@ -47,7 +47,7 @@ static void fillMatrix(struct matrix *matrix, const char * fileName) {
     fclose(file);
 
     if (load_ve_matrix(matrix) == 0) {
-        printf("load_ve_matrix (matrix.vh_rows -> matrix.ve_rows) returned error\n");
+        printf("load_ve_matrix (matrix.vh_rows -> matrix.ve_rows) filling with file %s returned error\n", fileName);
         exit(1);
     }
 }
@@ -68,6 +68,8 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
         printf("Erro alocando C\n");
         exit(1);
     }
+
+    load_ve_matrix(matrixC);
 
     return matrixC;
 }
@@ -221,6 +223,7 @@ int main(int argc, char* argv[]) {
         printf("Multiplicacao matricial com problema\n");
     } else {
         printf("Matrix mult time: %f ms\n", timedifference_msec(start, stop));
+        printf("Antes de unload.\n");
         if (unload_ve_matrix(matrixC) == 0) {
             printf("Erro ao copiar a matriz C antes de salvar.\n");
         } else {
