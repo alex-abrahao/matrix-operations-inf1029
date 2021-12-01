@@ -23,17 +23,10 @@ static struct matrix * init_matrix(unsigned long height, unsigned long width) {
     }
     matrix->height = height;
     matrix->width = width;
-    matrix->h_rows = (float *) aligned_alloc(32, matrix->height * matrix->width * (sizeof(float)));
+    matrix->vh_rows = (float *) malloc(matrix->height * matrix->width * (sizeof(float)));
 
-    if (matrix->h_rows == NULL) {
+    if (matrix->vh_rows == NULL) {
         printf("Problema ao alocar linhas da matriz no host\n");
-        exit(1);
-    }
-
-    cudaError_t cudaError = cudaMalloc(&matrix->d_rows, matrix->height * matrix->width * (sizeof(float)));
-
-    if (cudaError != cudaSuccess) {
-        printf("cudaMalloc returned error %s (code %d)\n", cudaGetErrorString(cudaError), cudaError);
         exit(1);
     }
 
@@ -50,25 +43,22 @@ static void fillMatrix(struct matrix *matrix, const char * fileName) {
         system("pause");
         exit(1);
     }
-    fread(matrix->h_rows, matrix->height * matrix->width * sizeof(float), 1, file);
+    fread(matrix->vh_rows, matrix->height * matrix->width * sizeof(float), 1, file);
     fclose(file);
 
-    cudaError_t cudaError = cudaMemcpy(matrix->d_rows, matrix->h_rows, matrix->height * matrix->width * sizeof(float), cudaMemcpyHostToDevice);
-
-    if (cudaError != cudaSuccess) {
-        printf("cudaMemcpy (matrix.h_rows -> matrix.d_rows) returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
+    if (load_ve_matrix(matrix) == 0) {
+        printf("load_ve_matrix (matrix.vh_rows -> matrix.ve_rows) returned error\n");
         exit(1);
     }
 }
 
-// Inicializa a matriz resultado de !!!! A * B !!!! preenchida com 0
+// Inicializa a matriz resultado de !!!! A * B !!!!
 static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix * matrixB) { 
     // Testa se as matrizes são compativeis
     if (matrixA->width != matrixB->height)  {
-        printf("widthA != heightB\n");
+        printf("matrixC: widthA != heightB\n");
         exit(1);
     }
-        
 
     // Aloca espaço para matriz C e da o tamanho para ela
     struct matrix * matrixC = init_matrix(matrixA->height, matrixB->width);
@@ -77,17 +67,17 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
     if (matrixA->height != matrixC->height || matrixB->width != matrixC->width) {
         printf("Erro alocando C\n");
         exit(1);
-    } 
+    }
 
     return matrixC;
 }
 
 static void printMatrix(struct matrix * matrix) {
     int i, j, index;
-    for (i = 0; i < matrix->height; i++) {
+    for (i = 0; i < matrix->height && i < 255; i++) {
         index = i * matrix->width;
-        for (j = 0; j < matrix->width; j++)
-            printf("%f ", matrix->h_rows[index++]);
+        for (j = 0; j < matrix->width && j < 255; j++)
+            printf("%f ", matrix->vh_rows[index++]);
         printf("\n");
     }
     printf("\n\n");
@@ -95,7 +85,7 @@ static void printMatrix(struct matrix * matrix) {
 
 static void saveMatrix(struct matrix * matrix, const char * fileName) {
     FILE *file;
-    
+
     file = fopen(fileName, "wb");
 
     if (file == NULL) {
@@ -103,17 +93,18 @@ static void saveMatrix(struct matrix * matrix, const char * fileName) {
         system("pause");
         exit(1);
     }
-
     // printMatrix(matrix);
 
-    fwrite(matrix->h_rows, matrix->height * matrix->width * sizeof(float), 1, file);
+    fwrite(matrix->vh_rows, matrix->height * matrix->width * sizeof(float), 1, file);
     fclose(file);
 }
 
 // Libera espaço alocado para uma matriz
 static void freeMatrix(struct matrix * matrix) {
-    cudaFree(matrix->d_rows);
-    free(matrix->h_rows);
+    if (matrix->ve_host != NULL) {
+        unload_ve_matrix(matrix);
+    }
+    free(matrix->vh_rows);
     free(matrix);
 }
 
@@ -126,7 +117,7 @@ int main(int argc, char* argv[]) {
 
     if (argc != 12) {
         printf("Parametros incorretos! Exemplo de comando:\n");
-        printf("./matrix_lib_test 5.0 8 16 16 8 256 4096 floats_256_2.0f.dat floats_256_5.0f.dat result1.dat result2.dat\n");
+        printf("./%s 5.0 8 16 16 8 1 8 floats_256_2.0f.dat floats_256_5.0f.dat result1.dat result2.dat\n", argv[0]);
         return 1;
     }
 
@@ -140,8 +131,9 @@ int main(int argc, char* argv[]) {
     16 é o número de colunas da primeira matriz;
     16 é o número de linhas da segunda matriz;
     8 é o número de colunas da segunda matriz;
-    256 é o número de threads por bloco a serem disparadas;
-    4096 é o número máximo de blocos por GRID a serem usados;
+
+    1 é o número de identificação da VE de execução;
+    8 é o número de threads a serem disparadas na VE de execução;
 
     floats_256_2.0f.dat é o nome do arquivo de floats que será usado para carregar a primeira matriz;
     floats_256_5.0f.dat é o nome do arquivo de floats que será usado para carregar a segunda matriz;
@@ -153,8 +145,7 @@ int main(int argc, char* argv[]) {
     float scalar;
     unsigned long heightA, widthA, heightB, widthB;
     const char * floatsA, * floatsB, * floatsResult1, * floatsResult2;
-    int numThreads, maxBlocks;
-    cudaError_t cudaError;
+    int ve_node, numThreads;
     
     scalar = strtof(argv[1], NULL); // Conversão p/ float
 
@@ -164,8 +155,8 @@ int main(int argc, char* argv[]) {
     heightB = strtoul(argv[4], NULL, 10);
     widthB = strtoul(argv[5], NULL, 10);
 
-    numThreads = atoi(argv[6]);
-    maxBlocks = atoi(argv[7]);
+    ve_node = atoi(argv[6]);
+    numThreads = atoi(argv[7]);
 
     floatsA = argv[8];
     floatsB = argv[9];
@@ -173,12 +164,10 @@ int main(int argc, char* argv[]) {
     floatsResult1 = argv[10];
     floatsResult2 = argv[11];
 
-    // GRID Size
-    if (set_grid_size(numThreads, maxBlocks) != 0) {
-        printf("Numero de threads por bloco: %d\nMax de blocos por GRID: %d\n", numThreads, maxBlocks);
-    } else {
-        printf("Erro: Parametros de threads ou max de blocos incorreto. Utilizando valores padroes.\n");
-    }
+    // Set params and init process
+    set_ve_execution_node(ve_node);
+    set_number_threads(numThreads);
+    init_proc_ve_node();
 
     // Inicialização das matrizes
     struct matrix * matrixA = init_matrix(heightA, widthA);
@@ -204,17 +193,16 @@ int main(int argc, char* argv[]) {
 
     // Mark init stop time
     gettimeofday(&stop, NULL);
-
-    cudaError = cudaMemcpy(matrixA->h_rows, matrixA->d_rows, matrixA->height * matrixA->width * sizeof(float), cudaMemcpyDeviceToHost);
     
     if (operationResult == 0) {
         printf("Multiplicacao escalar com problema\n");
-    } else if (cudaError != cudaSuccess) {
-        printf("cudaMemcpy (matrix.d_rows -> matrix.h_rows) returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
-        exit(1);
     } else {
         printf("Scalar mult time: %f ms\n", timedifference_msec(start, stop));
-        saveMatrix(matrixA, floatsResult1);
+        if (sync_ve_vh_matrix(matrixA) == 0) {
+            printf("Erro ao copiar a matriz A antes de salvar.\n");
+        } else {
+            saveMatrix(matrixA, floatsResult1);
+        }
     }
 
     /*
@@ -229,22 +217,24 @@ int main(int argc, char* argv[]) {
     operationResult = matrix_matrix_mult(matrixA, matrixB, matrixC);
     gettimeofday(&stop, NULL);
 
-    cudaError = cudaMemcpy(matrixC->h_rows, matrixC->d_rows, matrixC->height * matrixC->width * sizeof(float), cudaMemcpyDeviceToHost);
-
     if (operationResult == 0) {
         printf("Multiplicacao matricial com problema\n");
-    } else if (cudaError != cudaSuccess) {
-        printf("cudaMemcpy (matrix.d_rows -> matrix.h_rows) returned error %s (code %d), line(%d)\n", cudaGetErrorString(cudaError), cudaError, __LINE__);
-        exit(1);
     } else {
         printf("Matrix mult time: %f ms\n", timedifference_msec(start, stop));
-        saveMatrix(matrixC, floatsResult2);
+        if (unload_ve_matrix(matrixC) == 0) {
+            printf("Erro ao copiar a matriz C antes de salvar.\n");
+        } else {
+            saveMatrix(matrixC, floatsResult2);
+        }
     }
 
     // Libera matrizes
     freeMatrix(matrixA);
     freeMatrix(matrixB);
     freeMatrix(matrixC);
+
+    // Close VE process
+    close_proc_ve_node();
 
     // Mark overall stop time
     gettimeofday(&overall_t2, NULL);

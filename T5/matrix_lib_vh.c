@@ -15,6 +15,7 @@ static uint64_t library_handle = 0;
 void set_ve_execution_node(int num_node) {
     if (num_node < 0 || num_node > 3) {
         ve_execution_node = 0;
+        printf("num_node %d is out of range. Using default value\n", num_node);
         return;
     }
 
@@ -24,6 +25,7 @@ void set_ve_execution_node(int num_node) {
 void set_number_threads(int num_threads) {
     if (num_threads < 0) {
         nThreads = 1;
+        printf("num_threads %d is invalid. Using 1 thread\n", num_node);
         return;
     }
 
@@ -32,11 +34,15 @@ void set_number_threads(int num_threads) {
 
 int init_proc_ve_node() {
     process = veo_proc_create(ve_execution_node);
-    if (process == NULL) return 0;
+    if (process == NULL) {
+        printf("veo_proc_create failed\n");
+        return 0;
+    }
 
     library_handle = veo_load_library(process, "./matrix_lib_ve.so");
 
     if (library_handle == 0) {
+        printf("veo_load_library failed\n");
         veo_proc_destroy(process);
         process = NULL;
         return 0;
@@ -47,11 +53,13 @@ int init_proc_ve_node() {
 int close_proc_ve_node() {
     int rc = veo_unload_library(process, library_handle);
     if (rc != 0) {
+        printf("veo_unload_library failed: %d\n", rc);
         return 0;
     }
     library_handle = 0;
     rc = veo_proc_destroy(process);
-    if (rc == -1) {
+    if (rc != 1) {
+        printf("veo_proc_destroy failed: %d\n", rc);
         return 0;
     }
     process = NULL;
