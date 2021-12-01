@@ -59,19 +59,60 @@ int close_proc_ve_node() {
 }
 
 int load_ve_matrix(struct matrix *matrix) {
-    return 0;
+    int ret = veo_alloc_hmem(process, &(matrix->ve_rows), sizeof(float) * matrix->height * matrix->width);
+    if (ret != 0) {
+        printf("veo_alloc_hmem failed for ve_rows: %d\n", ret);
+        return 0;
+    }
+
+    return sync_vh_ve_matrix(matrix);
 }
 
 int unload_ve_matrix(struct matrix *matrix) {
-    return 0;
+    if (sync_ve_vh_matrix(matrix) == 0) {
+        printf("unload_ve_matrix failed when copying back\n");
+        return 0;
+    }
+
+    int ret = veo_free_hmem(matrix->ve_rows);
+    if (ret != 0) {
+        printf("veo_free_hmem failed: %d\n", ret);
+        return 0;
+    }
+    matrix->ve_rows = NULL;
+
+    return 1;
+}
+
+/// Returns 0 when there is an error: either vh_rows or ve_rows are NULL
+static int verify_rows_for_null(Matrix matrix) {
+    return (matrix->vh_rows != NULL && matrix->vh_rows != NULL);
 }
 
 int sync_vh_ve_matrix(struct matrix *matrix) {
-    return 0;
+    if (verify_rows_for_null(matrix) == 0) {
+        printf("Error: found NULL when trying to copy (vh_rows -> ve_rows)\n");
+    }
+
+    int ret = veo_hmemcpy(matrix->ve_rows, matrix->vh_rows, sizeof(float) * matrix->height * matrix->width);
+    if (ret != 0) {
+        printf("veo_hmemcpy (vh_rows -> ve_rows) failed: %d\n", ret);
+        return 0;
+    }
+    return 1;
 }
 
 int sync_ve_vh_matrix(struct matrix *matrix) {
-    return 0;
+    if (verify_rows_for_null(matrix) == 0) {
+        printf("Error: found NULL when trying to copy (ve_rows -> vh_rows)\n");
+    }
+
+    int ret = veo_hmemcpy(matrix->vh_rows, matrix->ve_rows, sizeof(float) * matrix->height * matrix->width);
+    if (ret != 0) {
+        printf("veo_hmemcpy (ve_rows -> vh_rows) failed: %d\n", ret);
+        return 0;
+    }
+    return 1;
 }
 
 

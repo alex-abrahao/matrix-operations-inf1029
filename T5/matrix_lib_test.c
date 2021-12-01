@@ -9,7 +9,7 @@ typedef struct matrix {
     unsigned long int height;
     unsigned long int width;
     float *vh_rows;
-    float *ve_rows;
+    void *ve_rows;
 } Matrix;
 */
 
