@@ -69,7 +69,10 @@ static struct matrix * init_matrixResult(struct matrix *matrixA, struct matrix *
         exit(1);
     }
 
-    load_ve_matrix(matrixC);
+    if (load_ve_matrix(matrixC) == 0) {
+        printf("load_ve_matrix (matrixC.vh_rows -> matrixC.ve_rows) returned error\n");
+        exit(1);
+    }
 
     return matrixC;
 }
@@ -223,7 +226,6 @@ int main(int argc, char* argv[]) {
         printf("Multiplicacao matricial com problema\n");
     } else {
         printf("Matrix mult time: %f ms\n", timedifference_msec(start, stop));
-        printf("Antes de unload.\n");
         if (unload_ve_matrix(matrixC) == 0) {
             printf("Erro ao copiar a matriz C antes de salvar.\n");
         } else {

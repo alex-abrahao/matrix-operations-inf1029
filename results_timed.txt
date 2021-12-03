@@ -27,3 +27,12 @@ Max de blocos por GRID: 4096
 Scalar mult time: 0.345000 ms
 Matrix mult time: 43.096001 ms
 Overall time: 214.966995 ms
+
+
+Resultado com o programa do Trabalho 5:
+
+scalar_mult: number of threads = 8
+Scalar mult time: 44.938000 ms
+matrix_mult: number of threads = 8
+Matrix mult time: 4495.249023 ms
+Overall time: 4675.315918 ms

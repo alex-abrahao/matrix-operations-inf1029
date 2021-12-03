@@ -224,26 +224,6 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
 }
 
 
-// void matrix_thread(unsigned long n, float * d_A, float * d_B, float * d_C, unsigned long widthA, unsigned long widthB, unsigned long widthC) {
-//     unsigned long i = blockIdx.x * blockDim.x + threadIdx.x;
-//     int stride = blockDim.x * gridDim.x;
-//     unsigned long j, k, lineA, lineC, colC, endA, indexB;
-
-//     for (; i < n; i += stride) {
-//         lineC = i / widthC;
-//         colC = i % widthC;
-//         lineA = lineC * widthA;
-//         endA = lineA + widthA;
-        
-//         d_C[i] = 0.0;
-        
-//         for (j = lineA, k = 0; j < endA; j++, k++) {
-//             indexB = k * widthB + colC;
-//             d_C[i] += d_A[j] * d_B[indexB];
-//         }
-//     }
-// }
-
 int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC) {
     if (test_matrix(matrixA) == 0 || test_matrix(matrixB) == 0) // testa a matrix
         return 0;
@@ -280,22 +260,50 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct m
         return 0;
     }
 
-    // ve_rows
-    ret = veo_args_set_hmem(argp, 1, matrixC->ve_rows);
+    // ve_A
+    ret = veo_args_set_hmem(argp, 1, matrixA->ve_rows);
     if (ret != 0) {
-        printf("veo_args_set_hmem failed for ve_rows: %d", ret);
+        printf("veo_args_set_hmem failed for ve_A: %d", ret);
         return 0;
     }
 
-    // scalar
-    ret = veo_args_set_float(argp, 2, 1.0);
+    // ve_B
+    ret = veo_args_set_hmem(argp, 2, matrixB->ve_rows);
     if (ret != 0) {
-        printf("veo_args_set_hmem failed for scalar: %d", ret);
+        printf("veo_args_set_hmem failed for ve_A: %d", ret);
+        return 0;
+    }
+
+    // ve_C
+    ret = veo_args_set_hmem(argp, 3, matrixC->ve_rows);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for ve_A: %d", ret);
+        return 0;
+    }
+
+    // widthA
+    ret = veo_args_set_u64(argp, 4, matrixA->width);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for widthA: %d", ret);
+        return 0;
+    }
+
+    // widthB
+    ret = veo_args_set_u64(argp, 5, matrixB->width);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for widthB: %d", ret);
+        return 0;
+    }
+
+    // widthC
+    ret = veo_args_set_u64(argp, 6, matrixC->width);
+    if (ret != 0) {
+        printf("veo_args_set_hmem failed for widthC: %d", ret);
         return 0;
     }
 
     // num_threads
-    ret = veo_args_set_i32(argp, 3, nThreads);
+    ret = veo_args_set_i32(argp, 7, nThreads);
     if (ret != 0) {
         printf("veo_args_set_hmem failed for num_threads: %d", ret);
         return 0;
@@ -307,13 +315,6 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct m
         printf("veo_call_async_by_name (matrix mult) failed: %lu\n", id);
         return 0;
     }
-
-    // int blockSize = threadsPerBlock, matrixSize = matrixC->height * matrixC->width;
-    // int numBlocks = (matrixSize + blockSize - 1) / blockSize;
-    // if (numBlocks > maxBlocksPerGrid)
-    //     numBlocks = maxBlocksPerGrid;
-
-    // matrix_thread<<<numBlocks, blockSize>>>(matrixSize, matrixA->d_rows, matrixB->d_rows, matrixC->d_rows, matrixA->width, matrixB->width, matrixC->width);
 
     // Waiting for threads to finish
     uint64_t retval;
